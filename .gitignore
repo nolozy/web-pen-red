@@ -1,0 +1,16 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+
+# Node (only if tooling is ever added)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Packaging output
+*.zip
+*.crx
+*.pem
