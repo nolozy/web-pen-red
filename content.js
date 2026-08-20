@@ -99,9 +99,13 @@
   function onPointerDown(e) {
     if (!penMode || e.button !== 0) return;
     e.preventDefault();
-    canvas.setPointerCapture(e.pointerId);
     current = [toDocPoint(e)];
     strokes.push(current);
+    try {
+      canvas.setPointerCapture(e.pointerId);
+    } catch (_) {
+      // The pointer may already be gone; drawing still works without capture.
+    }
     applyTransform();
     drawStroke(current);
   }
@@ -123,6 +127,22 @@
     if (!current) return;
     if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
     current = null;
+  }
+
+  function clearAll() {
+    strokes = [];
+    current = null;
+    redraw();
+  }
+
+  /**
+   * Right-click clears everything. The canvas only receives events in pen mode,
+   * so the page's own context menu is untouched while in cursor mode.
+   */
+  function onContextMenu(e) {
+    if (!penMode) return;
+    e.preventDefault();
+    clearAll();
   }
 
   /* ---------- toolbar ---------- */
@@ -232,11 +252,7 @@
 
     penBtn = makeButton('pen', 'Pen', () => setPenMode(true));
     cursorBtn = makeButton('cursor', 'Cursor', () => setPenMode(false));
-    const clearBtn = makeButton('trash', 'Clear all', () => {
-      strokes = [];
-      current = null;
-      redraw();
-    });
+    const clearBtn = makeButton('trash', 'Clear all (right-click also clears)', clearAll);
     const closeBtn = makeButton('close', 'Close', destroy);
 
     toolbar.append(penBtn, cursorBtn, clearBtn, closeBtn);
@@ -251,6 +267,7 @@
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('pointerup', onPointerUp);
     canvas.addEventListener('pointercancel', onPointerUp);
+    canvas.addEventListener('contextmenu', onContextMenu);
     window.addEventListener('scroll', queueRedraw, true);
     window.addEventListener('resize', resizeCanvas);
   }
