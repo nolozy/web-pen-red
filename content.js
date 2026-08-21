@@ -145,6 +145,28 @@
     clearAll();
   }
 
+  function isTypingTarget(el) {
+    if (!el) return false;
+    if (el.isContentEditable) return true;
+    const tag = el.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+  }
+
+  /**
+   * Tab flips between pen and cursor. It is left alone while the caret is in a
+   * form field and whenever a modifier is held, so normal focus navigation and
+   * typing keep working.
+   */
+  function onKeyDown(e) {
+    if (e.key !== 'Tab' || e.repeat) return;
+    if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+    if (!root || root.classList.contains('wpr-hidden')) return;
+    if (isTypingTarget(document.activeElement)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setPenMode(!penMode);
+  }
+
   /* ---------- toolbar ---------- */
 
   function setPenMode(on) {
@@ -250,8 +272,8 @@
     toolbar = document.createElement('div');
     toolbar.id = 'wpr-toolbar';
 
-    penBtn = makeButton('pen', 'Pen', () => setPenMode(true));
-    cursorBtn = makeButton('cursor', 'Cursor', () => setPenMode(false));
+    penBtn = makeButton('pen', 'Pen (Tab)', () => setPenMode(true));
+    cursorBtn = makeButton('cursor', 'Cursor (Tab)', () => setPenMode(false));
     const clearBtn = makeButton('trash', 'Clear all (right-click also clears)', clearAll);
     const closeBtn = makeButton('close', 'Close', destroy);
 
@@ -270,12 +292,14 @@
     canvas.addEventListener('contextmenu', onContextMenu);
     window.addEventListener('scroll', queueRedraw, true);
     window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('keydown', onKeyDown, true);
   }
 
   function destroy() {
     if (!root) return;
     window.removeEventListener('scroll', queueRedraw, true);
     window.removeEventListener('resize', resizeCanvas);
+    window.removeEventListener('keydown', onKeyDown, true);
     root.remove();
     root = canvas = ctx = toolbar = penBtn = cursorBtn = null;
     strokes = [];
